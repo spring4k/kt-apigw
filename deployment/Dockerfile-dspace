@@ -1,0 +1,31 @@
+#FROM openjdk:11
+FROM nexus.dspace.kt.co.kr/openjdk:11
+
+
+ENV TZ Asia/Seoul
+
+RUN mkdir -p /apigw
+RUN mkdir -p /apigw/cusLibs
+
+ADD ./jar/apigw-0.0.1-SNAPSHOT.jar /apigw/apigw.jar
+ADD ./cusLibs/* /apigw/cusLibs/
+
+RUN mkdir -p /data/license
+RUN mkdir -p /data/file
+RUN mkdir -p /data/log
+
+WORKDIR /apigw
+
+RUN jar -xf /apigw/apigw.jar
+RUN rm -rf /apigw/apigw.jar
+
+EXPOSE 8080
+
+#ENTRYPOINT java -Dspring.profiles.active=${PROFILE} ${JVM_ARGS} ${JAVA_OPTS} \
+#			-Dcommon.file.mountPath=/data/file -Dlogging.file.path=/data/log \
+#			-classpath "/apigw/BOOT-INF/classes:/apigw/BOOT-INF/lib/*:/apigw/cusLibs/*" \
+#			com.ktds.act.apigw.ApigwApplication
+
+ENV CLASS_PATH="-classpath /apigw/BOOT-INF/classes:/apigw/BOOT-INF/lib/*"
+
+ENTRYPOINT ["sh", "-c", "java $JVM_ARGS $JAVA_OPTS $CLASS_PATH:$LIB_PATH com.ktds.act.apigw.ApigwApplication"]

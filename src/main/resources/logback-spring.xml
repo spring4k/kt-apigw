@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <springProperty name="application-name" source="spring.application.name" />
+
+	<appender name="CONSOLE-PROCESS" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<pattern>[%d{HH:mm:ss.SSS}][%-1.-1p][%thread][%logger][%L] %m%n</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="FILE-PROCESS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<encoder>
+			<pattern>[%d{HH:mm:ss.SSS}][%-1.-1p][%thread][%logger][%L] %m%n</pattern>
+		</encoder>
+		<!-- apllication.yml profile 별 logging.file, logging.path 설정 값 로드 -->
+		<file>${LOG_PATH}/${application-name}_process.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_PATH}/backup/${application-name}_process.log.%d{yyyy-MM-dd}.%i</fileNamePattern>
+			<maxFileSize>100MB</maxFileSize>
+			<maxHistory>90</maxHistory>
+			<totalSizeCap>5GB</totalSizeCap>
+			<cleanHistoryOnStart>true</cleanHistoryOnStart>
+		</rollingPolicy>
+	</appender>
+
+	<appender name="FILE-TRANSACTION" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<encoder>
+			<pattern>%m%n</pattern>
+		</encoder>
+		<file>${LOG_PATH}/${application-name}_transaction.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_PATH}/backup/${application-name}_transaction.log.%d{yyyy-MM-dd}.%i
+			</fileNamePattern>
+			<maxFileSize>100MB</maxFileSize>
+			<maxHistory>1000</maxHistory>
+			<totalSizeCap>100GB</totalSizeCap>
+			<cleanHistoryOnStart>true</cleanHistoryOnStart>
+		</rollingPolicy>
+	</appender>
+
+	<appender name="CONSOLE-TRANSACTION" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<pattern>[%d{HH:mm:ss.SSS}][%-1.-1p][%thread][%logger][%L] %m%n</pattern>
+		</encoder>
+	</appender>
+
+	<springProfile name="local, khkim">
+		<logger name="org.springframework" level="INFO" />
+
+		<root level="INFO">
+			<appender-ref ref="CONSOLE-PROCESS" />
+			<appender-ref ref="FILE-PROCESS" />
+		</root>
+		<logger name="TRANSACTION" additivity="false" level="INFO">
+			<appender-ref ref="FILE-TRANSACTION" />
+			<appender-ref ref="CONSOLE-TRANSACTION" />
+		</logger>
+	</springProfile>
+	<springProfile name="tb, dev, si, docker, prod">
+		<logger name="org.springframework" level="INFO" />
+
+		<root level="INFO">
+			<appender-ref ref="FILE-PROCESS" />
+		</root>
+		<logger name="TRANSACTION" additivity="false" level="INFO">
+			<appender-ref ref="FILE-TRANSACTION" />
+		</logger>
+	</springProfile>
+
+</configuration>

@@ -1,0 +1,32 @@
+pipeline {
+	
+    agent { label 'docker-maven' }
+
+    environment {
+        VERSION = "${RELEASE_VERSION}"
+        DATE = "${RELEASE_DATE}"
+    }
+
+	stages {
+
+		stage("get jar") {
+			steps {
+				sh "mkdir deployment/jar"
+				sh "curl -v -u beast:new1234! -o 'deployment/jar/apigw-0.0.1-SNAPSHOT.jar' 'https://nexus.dspace.kt.co.kr/repository/maven-snapshots/com/kt/beast/apigw/${DATE}-SNAPSHOT/apigw-0.0.1-SNAPSHOT.jar'"
+			}
+		}
+		
+		stage("dockerize") {
+			steps {
+				script {
+					echo "[dockerize] START" 
+					docker.withRegistry('https://nexus.dspace.kt.co.kr', 'beast-nexus') {
+						def containerCurrentImage = docker.build("beast/apigw/api-link-gw:${VERSION}", "-f ./deployment/Dockerfile-dspace ./deployment")
+						containerCurrentImage.push()
+					}
+					echo "[dockerize] END" 
+				}
+			}
+		}
+	}
+}

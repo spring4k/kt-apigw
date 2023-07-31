@@ -1,0 +1,59 @@
+pipeline {
+	
+	agent any
+
+    environment {
+        TYPE = "${APPLICATION_TYPE}"
+        VERSION = "${RELEASE_VERSION}".substring("${RELEASE_VERSION}".lastIndexOf('/') + 1, "${RELEASE_VERSION}".length())
+    }
+
+	stages {
+
+		stage("build") {
+			steps {
+				sh "echo [build] START"
+				sh "./gradlew clean build -xTest"
+				sh "echo [build] END"
+			}
+		}
+
+		stage("deploy local") {
+			steps {
+				// Dockerfile에서 build를 위한 jar파일 local 복사
+				sh "echo [deploy] START"
+				sh "./gradlew copyJarToDeploy"
+				sh "echo [deploy] END"
+			}
+		}
+		
+		stage("publish nexus") {
+			steps {
+				// backend에서 apigw 참조를 위한 plain.jar 파일이 nexus로 업로드된다.
+				sh "echo [publish] START"
+				sh "./gradlew publish"
+				sh "pwd"
+				sh "ls -l"
+				sh "curl -v -u beast:new1234! --upload-file 'build/libs/apigw-0.0.1-SNAPSHOT.jar' 'https://nexus.dspace.kt.co.kr/repository/maven-snapshots/com/kt/beast/apigw/" + System.currentTimeMillis() + "-SNAPSHOT/apigw-0.0.1-SNAPSHOT.jar'"
+				sh "echo [publish] END"
+			}
+		}
+		
+		stage("dockerize") {
+			steps {
+				script {
+					echo "[dockerize] START" 
+
+					docker.withRegistry('http://3.39.117.244:5000', 'beast-nexus') {
+						def containerCurrentImage = docker.build("beast/apigw/${TYPE}:${VERSION}", "-f ./deployment/Dockerfile ./deployment")
+						containerCurrentImage.push()
+
+						def containerLatestImage = docker.build("beast/apigw/${TYPE}:latest", "-f ./deployment/Dockerfile ./deployment")
+						containerLatestImage.push()
+					}
+
+					echo "[dockerize] END" 
+				}
+			}
+		}
+	}
+}
